@@ -9,7 +9,7 @@ import JobMarker    from "./components/JobMarker";
 import FilterPanel  from "./components/FilterPanel";
 import MetricsStrip from "./components/MetricsStrip";
 
-// ── Map bounds fitter ─────────────────────────────────────────────────────────
+// ── Map bounds fitters ─────────────────────────────────────────────────────────
 function MapFitter({ jobs }) {
   const map = useMap();
   useMemo(() => {
