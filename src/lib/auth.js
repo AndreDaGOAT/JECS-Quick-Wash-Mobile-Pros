@@ -1,9 +1,8 @@
-
 // ── Supabase Auth config ──────────────────────────────────────────────────────
 const SB_URL = "https://mylqkbpclcrqorjctjxn.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15bHFrYnBjbGNycW9yamN0anhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjcxNzgsImV4cCI6MjA5NTMwMzE3OH0.yeZZHm0BEvrJShe8Wek5rfKAwunJQ8byKF1THbtwYYg";
 
-const ALLOWED_ROLES = ["employee", "admin"];
+const ALLOWED_ROLES = ["employee", "admin", "wash_pro", "independent_contractor"];
 
 // ── Auth API calls ────────────────────────────────────────────────────────────
 
@@ -61,9 +60,9 @@ export async function fetchProfile(userId, accessToken) {
 
   const profile = rows[0];
 
-  if (!ALLOWED_ROLES.includes(profile.role)) {
+  if (!ALLOWED_ROLES.includes((profile.role || "").toLowerCase())) {
     throw new Error(
-      `Access denied. This app is for employees only.\nYour role: "${profile.role}"`
+      `Access denied. This app is for JECS Wash Pros only.\nYour role: "${profile.role}"`
     );
   }
 
