@@ -1,10 +1,10 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { useAuth }        from "./hooks/useAuth";
-import { useJobs }        from "./hooks/useJobs";
-import { STATUS_COLORS }  from "./lib/supabase";
+import { useAuth }       from "./hooks/useAuth";
+import { useJobs }       from "./hooks/useJobs";
+import { STATUS_COLORS } from "./lib/supabase";
 import LoginScreen  from "./components/LoginScreen";
 import JobMarker    from "./components/JobMarker";
 import FilterPanel  from "./components/FilterPanel";
@@ -13,7 +13,7 @@ import MetricsStrip from "./components/MetricsStrip";
 // ── Map auto-fitter ───────────────────────────────────────────────────────────
 function MapFitter({ jobs }) {
   const map = useMap();
-  useMemo(() => {
+  useEffect(() => {
     if (!jobs.length) return;
     setTimeout(() => {
       try {
@@ -22,8 +22,8 @@ function MapFitter({ jobs }) {
           { padding: [40, 40] }
         );
       } catch (_) {}
-    }, 100);
-  }, [jobs.length > 0 ? jobs.map(j => j.appointment_id).join() : ""]);
+    }, 150);
+  }, [jobs.length]);
   return null;
 }
 
@@ -35,12 +35,24 @@ const DEFAULT_FILTERS = {
   customer:      "",
   todayOnly:     true,
   showCompleted: false,
-  showClaimable: true,   // show pending/claimable requests
+  showClaimable: true,
 };
 
-// ── App ───────────────────────────────────────────────────────────────────────
-export default function App() {
-  const auth = useAuth();
+// ── Splash ────────────────────────────────────────────────────────────────────
+function Splash({ message = "Loading…" }) {
+  return (
+    <div className="splash">
+      <div className="splash-logo">
+        <span className="logo-jecs">JECS</span>
+        <span className="logo-sub">Quick Wash</span>
+      </div>
+      <div className="splash-loading">{message}</div>
+    </div>
+  );
+}
+
+// ── Authenticated map view ────────────────────────────────────────────────────
+function MapView({ auth }) {
   const {
     jobs, washPro, loading: jobsLoading,
     isSample, lastUpdated, error,
@@ -51,36 +63,9 @@ export default function App() {
   const [toast,       setToast]   = useState(null);
   const [sidebarOpen, setSidebar] = useState(true);
 
-  // ── Splash screen while restoring session ─────────────────────────────────
-  if (auth.loading) {
-    return (
-      <div className="splash">
-        <div className="splash-logo">
-          <span className="logo-jecs">JECS</span>
-          <span className="logo-sub">Quick Wash</span>
-        </div>
-        <div className="splash-loading">Restoring session…</div>
-      </div>
-    );
-  }
-
-  // ── Login screen ──────────────────────────────────────────────────────────
-  if (!auth.isAuthenticated) {
-    return (
-      <LoginScreen
-        onLogin={auth.login}
-        loading={auth.loading}
-        error={auth.error}
-      />
-    );
-  }
-
-  // ── Wash Pro profile warning ──────────────────────────────────────────────
-  // Show a non-blocking warning if the tech has no wash_pro_profiles row
-  // They can still see the map but can't claim jobs
   const canClaim = washPro?.onboarding_status === "approved" && washPro?.active === true;
 
-  // ── Filter jobs ───────────────────────────────────────────────────────────
+  // ── Filter ────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return jobs.filter(j => {
@@ -95,7 +80,6 @@ export default function App() {
     });
   }, [jobs, filters]);
 
-  // Route: only through confirmed/active assigned jobs
   const routePoints = useMemo(() => (
     filtered
       .filter(j => !j.is_claimable && !["Completed","Cancelled","Rescheduled"].includes(j.appointment_status))
@@ -107,12 +91,14 @@ export default function App() {
     ? [filtered[0].latitude, filtered[0].longitude]
     : [35.1495, -90.0490];
 
+  const claimableCount = filtered.filter(j => j.is_claimable).length;
+  const myJobsCount    = filtered.filter(j => !j.is_claimable).length;
+
   function showToast(msg, type = "success") {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   }
 
-  // ── Advance status ────────────────────────────────────────────────────────
   async function handleAdvance(job, newStatus) {
     try {
       await advanceStatus(job, newStatus);
@@ -122,7 +108,6 @@ export default function App() {
     }
   }
 
-  // ── Claim job ─────────────────────────────────────────────────────────────
   async function handleClaim(job) {
     if (!canClaim && !isSample) {
       showToast("Your account must be approved before claiming jobs.", "error");
@@ -130,20 +115,15 @@ export default function App() {
     }
     try {
       await claimJob(job);
-      showToast(`🎉 Job claimed! Check your assigned jobs.`);
+      showToast("🎉 Job claimed! Check your assigned jobs.");
     } catch (err) {
       showToast(err.message || "Could not claim — try again.", "error");
-      throw err; // re-throw so JobMarker can show inline error
+      throw err;
     }
   }
 
-  // ── Counts for map legend ─────────────────────────────────────────────────
-  const claimableCount = filtered.filter(j => j.is_claimable).length;
-  const myJobsCount    = filtered.filter(j => !j.is_claimable).length;
-
   return (
     <div className="app-shell">
-
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="pro-header">
         <div className="header-left">
@@ -165,15 +145,9 @@ export default function App() {
               ⚠ Pending Approval
             </span>
           )}
-
-          {/* Availability counts */}
           {claimableCount > 0 && (
-            <span className="available-badge">
-              ⚡ {claimableCount} Available
-            </span>
+            <span className="available-badge">⚡ {claimableCount} Available</span>
           )}
-
-          {/* User chip */}
           <div className="user-chip">
             <span className="user-avatar">
               {(auth.profile?.full_name || auth.profile?.email || "?")[0].toUpperCase()}
@@ -185,7 +159,6 @@ export default function App() {
               {washPro?.worker_type === "independent_contractor" ? "Contractor" : auth.profile?.role}
             </span>
           </div>
-
           <button className="btn-refresh" onClick={reload} disabled={jobsLoading}>
             {jobsLoading ? "Loading…" : "↻ Refresh"}
           </button>
@@ -232,7 +205,6 @@ export default function App() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             <MapFitter jobs={filtered} />
-
             {filtered.map(job => (
               <JobMarker
                 key={job.appointment_id}
@@ -242,7 +214,6 @@ export default function App() {
                 isSample={isSample}
               />
             ))}
-
             {routePoints.length > 1 && (
               <Polyline
                 positions={routePoints}
@@ -263,4 +234,26 @@ export default function App() {
       )}
     </div>
   );
+}
+
+// ── Root App — handles auth gating ───────────────────────────────────────────
+export default function App() {
+  const auth = useAuth();
+
+  // Restoring saved session
+  if (auth.loading) return <Splash message="Restoring session…" />;
+
+  // Not logged in — show login screen
+  if (!auth.isAuthenticated) {
+    return (
+      <LoginScreen
+        onLogin={auth.login}
+        loading={auth.loading}
+        error={auth.error}
+      />
+    );
+  }
+
+  // Authenticated — show map
+  return <MapView auth={auth} />;
 }
