@@ -159,15 +159,28 @@ function MapView({ auth }) {
               {washPro?.worker_type === "independent_contractor" ? "Contractor" : auth.profile?.role}
             </span>
           </div>
-          <button className="btn-refresh" onClick={reload} disabled={jobsLoading}>
-            {jobsLoading ? "Loading…" : "↻ Refresh"}
+          <button className="btn-refresh" onClick={reload} disabled={jobsLoading}
+            title="Refresh">
+            {jobsLoading ? "⟳" : "↻"}
+            <span className="btn-refresh-label">&nbsp;Refresh</span>
           </button>
-          <button className="btn-signout" onClick={auth.logout}>Sign Out</button>
+          <button className="btn-signout" onClick={auth.logout} title="Sign Out">
+            ⏻
+            <span className="btn-signout-label">&nbsp;Sign Out</span>
+          </button>
         </div>
       </header>
 
       {/* ── Body ───────────────────────────────────────────────── */}
       <div className="map-workspace">
+        {/* Backdrop — closes filter panel on mobile when tapped */}
+        {sidebarOpen && (
+          <div className="filter-backdrop"
+            onClick={() => setSidebar(false)}
+            aria-hidden="true"
+          />
+        )}
+
         {sidebarOpen && (
           <FilterPanel
             filters={filters}
