@@ -73,19 +73,33 @@ export function nextStatus(current) {
 }
 
 // ── Claim a service request via RPC ──────────────────────────────────────────
-// Calls claim_service_request(p_request_id) which:
-//   - Verifies the tech is approved + active
-//   - Checks territory match
-//   - Atomically assigns the request (FOR UPDATE concurrency lock)
-//   - Returns the full enriched request row
 export async function claimServiceRequest(requestId, accessToken) {
   const result = await sbRpc(
     "claim_service_request",
     { p_request_id: requestId },
     accessToken
   );
-  // RPC returns an array of rows (RETURNS TABLE)
-  return Array.isArray(result) ? result[0] : result;
+  // RPC returns array of rows with out_ prefixed columns
+  const row = Array.isArray(result) ? result[0] : result;
+  if (!row) return null;
+  // Normalize out_ prefix back to friendly names for the app
+  return {
+    request_id:               row.out_request_id,
+    service_request_number:   row.out_service_request_number,
+    customer_id:              row.out_customer_id,
+    full_name:                row.out_full_name,
+    phone_number:             row.out_phone_number,
+    email:                    row.out_email,
+    formatted_address:        row.out_formatted_address,
+    zip_code:                 row.out_zip_code,
+    latitude:                 row.out_latitude,
+    longitude:                row.out_longitude,
+    requested_date:           row.out_requested_date,
+    special_notes:            row.out_special_notes,
+    request_status:           row.out_request_status,
+    assigned_wash_pro_id:     row.out_assigned_wash_pro_id,
+    claimed_at:               row.out_claimed_at,
+  };
 }
 
 // ── Advance appointment status + sync service_request ────────────────────────
