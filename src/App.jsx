@@ -115,7 +115,7 @@ function MapView({ auth }) {
     }
     try {
       await claimJob(job);
-      showToast("🎉 Job claimed! Check your assigned jobs.");
+      showToast("🎉 Job claimed! It's now in your Confirmed jobs.");
     } catch (err) {
       showToast(err.message || "Could not claim — try again.", "error");
       throw err;
