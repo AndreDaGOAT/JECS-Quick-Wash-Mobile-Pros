@@ -34,7 +34,7 @@ export function useJobs(session, profile) {
       const [pending, myJobs] = await Promise.all([
         fetchPendingRequests(accessToken).catch(() => []),
         wp?.wash_pro_id
-          ? fetchMyJobs(wp.wash_pro_id, accessToken).catch(() => [])
+          ? fetchMyJobs(wp.wash_pro_id, profileId, accessToken).catch(() => [])
           : Promise.resolve([]),
       ]);
 
