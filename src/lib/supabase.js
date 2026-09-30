@@ -166,20 +166,17 @@ export async function fetchPendingRequests(accessToken) {
 }
 
 // ── Fetch the tech's own assigned/active appointments ─────────────────────────
-export async function fetchMyJobs(washProId, accessToken) {
-  // Fetch appointments assigned to this wash pro
+export async function fetchMyJobs(washProId, profileId, accessToken) {
+  // Only fetch appointments where assigned_employee_id matches this tech's
+  // profile_id (set by claim_service_request) OR service_request is assigned
+  // to their wash_pro_id — covers both assignment paths
   const appts = await sbGet(
-    `appointments?select=*,customers(full_name,formatted_address,latitude,longitude,zip_code,phone_number,email)&order=scheduled_start.asc&limit=200`,
+    `appointments?select=*,customers(full_name,formatted_address,latitude,longitude,zip_code,phone_number,email)&assigned_employee_id=eq.${profileId}&appointment_status=neq.Cancelled&appointment_status=neq.Rescheduled&order=scheduled_start.asc&limit=200`,
     accessToken
   );
 
-  const mine = appts.filter(a =>
-    a.assigned_employee_id === washProId ||
-    !["Completed","Cancelled","Rescheduled"].includes(a.appointment_status)
-  );
-
   // Enrich with vehicle data
-  const enriched = await Promise.all(mine.map(async a => {
+  const enriched = await Promise.all((appts || []).map(async a => {
     let vehicleType = null, licensePlate = null;
 
     if (a.service_request_id) {
