@@ -126,42 +126,36 @@ export async function advanceJobStatus(job, newStatus, accessToken) {
   }
 }
 
-// ── Fetch claimable service requests (Pending, in tech's territory) ───────────
-// The territory check is enforced server-side by claim_service_request.
-// Here we just fetch all Pending requests with customer location data
-// so the tech can see what's available on the map before claiming.
+// ── Fetch claimable appointments for this Wash Pro's territory ────────────────
+// Calls fetch_claimable_appointments() RPC which:
+//   - Filters to appointments with status "Requested" and no assigned_employee_id
+//   - Restricts to zip codes in this Wash Pro's wash_pro_territories
+//   - All unassigned Wash Pros in the territory see the same list (Uber-style)
+//   - First to call claimServiceRequest wins
 export async function fetchPendingRequests(accessToken) {
-  const rows = await sbGet(
-    "service_requests?select=request_id,service_request_number,customer_id,requested_date,special_notes,status,cluster_key,customers(full_name,formatted_address,latitude,longitude,zip_code,phone_number,email)&status=eq.Pending&order=created_at.asc&limit=100",
-    accessToken
-  );
+  const rows = await sbRpc("fetch_claimable_appointments", {}, accessToken);
 
   return (rows || [])
-    .map(r => {
-      const c = r.customers || {};
-      return {
-        // Map Pending service requests to the same shape as appointments
-        // so JobMarker can render them uniformly
-        appointment_id:       r.request_id,     // reuse field for map key
-        request_id:           r.request_id,
-        service_request_number: r.service_request_number,
-        appointment_status:   "Pending",         // display status
-        is_claimable:         true,              // flag for popup CTA
-        scheduled_start:      r.requested_date ? `${r.requested_date}T08:00:00` : null,
-        preferred_time_window: null,
-        customer_notes:       r.special_notes,
-        cluster_key:          r.cluster_key,
-        customer_name:        c.full_name         || "New Request",
-        formatted_address:    c.formatted_address || "",
-        phone_number:         "",                // hidden until claimed
-        latitude:             parseFloat(c.latitude)  || null,
-        longitude:            parseFloat(c.longitude) || null,
-        zip_code:             c.zip_code         || "",
-        vehicle_type:         "—",
-        license_plate:        "—",
-        weather_score:        null,
-      };
-    })
+    .map(a => ({
+      appointment_id:         a.appointment_id,
+      request_id:             a.service_request_id,
+      service_request_number: a.service_request_number || "—",
+      appointment_status:     "Requested",
+      is_claimable:           true,
+      scheduled_start:        a.scheduled_start         || null,
+      preferred_time_window:  a.preferred_time_window   || null,
+      customer_notes:         a.customer_notes          || null,
+      cluster_key:            a.cluster_key             || null,
+      customer_name:          a.customer_name           || "New Request",
+      formatted_address:      a.formatted_address       || "",
+      phone_number:           "",   // hidden until claimed
+      latitude:               parseFloat(a.latitude)    || null,
+      longitude:              parseFloat(a.longitude)   || null,
+      zip_code:               a.zip_code                || "",
+      vehicle_type:           a.vehicle_type            || "—",
+      license_plate:          a.license_plate           || "—",
+      weather_score:          null,
+    }))
     .filter(r => r.latitude && r.longitude);
 }
 
