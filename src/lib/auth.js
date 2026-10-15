@@ -28,6 +28,24 @@ export async function signIn(email, password) {
   return data; // { access_token, refresh_token, user, ... }
 }
 
+// Refresh an expired session using the refresh token
+export async function refreshSession(refreshToken) {
+  try {
+    const res = await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SB_KEY,
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return null;
+    return await res.json(); // { access_token, refresh_token, user, ... }
+  } catch (_) {
+    return null;
+  }
+}
+
 // Sign out — revoke the session token
 export async function signOut(accessToken) {
   await fetch(`${SB_URL}/auth/v1/logout`, {
