@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useCallback } from "react";
 import {
-  signIn, signOut, fetchProfile,
+  signIn, signOut, fetchProfile, refreshSession,
   getSavedSession, saveSession, clearSession,
 } from "../lib/auth";
 
@@ -17,8 +16,33 @@ export function useAuth() {
       const saved = getSavedSession();
       if (saved?.access_token && saved?.user?.id) {
         try {
-          const prof = await fetchProfile(saved.user.id, saved.access_token);
-          setSession(saved);
+          // Check if token is expired (Supabase JWT has exp claim in seconds)
+          const payload = JSON.parse(atob(saved.access_token.split(".")[1]));
+          const isExpired = payload.exp && payload.exp * 1000 < Date.now();
+
+          let activeSession = saved;
+
+          if (isExpired && saved.refresh_token) {
+            // Attempt silent refresh using the refresh token
+            const refreshed = await refreshSession(saved.refresh_token);
+            if (refreshed?.access_token) {
+              saveSession(refreshed);
+              activeSession = refreshed;
+            } else {
+              // Refresh failed — force re-login
+              clearSession();
+              setLoading(false);
+              return;
+            }
+          } else if (isExpired) {
+            // No refresh token — force re-login
+            clearSession();
+            setLoading(false);
+            return;
+          }
+
+          const prof = await fetchProfile(activeSession.user.id, activeSession.access_token);
+          setSession(activeSession);
           setProfile(prof);
         } catch (err) {
           // Session expired or role changed — clear it
