@@ -114,6 +114,15 @@ export default function JobMarker({ job, onAdvance, onClaim, isSample }) {
               <>
                 <div><dt>Zone</dt><dd>{job.zip_code || "—"}</dd></div>
                 <div><dt>Requested</dt><dd>{formatDate(job.scheduled_start)}</dd></div>
+                {(job.preferred_time_window || job.scheduled_start) && (
+                  <div><dt>Preferred Time</dt>
+                    <dd style={{ color: "#F59E0B", fontWeight: 600 }}>
+                      {job.preferred_time_window
+                        ? job.preferred_time_window
+                        : formatTime(job.scheduled_start)}
+                    </dd>
+                  </div>
+                )}
                 {job.cluster_key && <div><dt>Cluster</dt><dd>{job.cluster_key}</dd></div>}
                 {job.customer_notes && (
                   <div><dt>Notes</dt>
