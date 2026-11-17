@@ -48,49 +48,24 @@ export async function sbRpc(fn, params, accessToken) {
   return data;
 }
 
-// ── Look up PaymentIntent ID for an appointment from t3_transactions ──────────
-async function getPaymentIntentId(appointment_id, accessToken) {
-  if (!appointment_id) return null;
-  try {
-    const rows = await sbGet(
-      `t3_transactions?appointment_id=eq.${appointment_id}` +
-      `&transaction_status=eq.pending` +
-      `&select=provider_payment_id` +
-      `&order=created_at.desc&limit=1`,
-      accessToken
-    );
-    const pi = Array.isArray(rows) && rows.length > 0
-      ? rows[0].provider_payment_id
-      : null;
-    console.log("[T³] appointment", appointment_id, "→ payment_intent_id:", pi);
-    return pi;
-  } catch (err) {
-    console.warn("[T³] Could not look up payment_intent_id:", err.message);
-    return null;
-  }
-}
-
-// ── Trigger Stripe capture via T³ Worker ──────────────────────────────────────
-// Called when job advances to "Quality Check" (job done, payment due).
-// Non-blocking: logs failure but does not throw — status advance proceeds either way.
-async function triggerCapture(appointment_id, payment_intent_id) {
-  if (!appointment_id || !payment_intent_id) {
-    console.warn("[T³] capture skipped — missing appointment_id or payment_intent_id");
+// ── Trigger Stripe capture via T³ Worker (requires the Wash Pro's login) ─────
+// Non-blocking: logs failure but does not throw.
+async function triggerCapture(appointment_id, accessToken) {
+  if (!appointment_id || !accessToken) {
+    console.warn("[T³] capture skipped — missing appointment or login");
     return;
   }
   try {
     const res = await fetch(`${T3_WORKER_URL}/capture`, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ appointment_id, payment_intent_id }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization:  `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ appointment_id }),
     });
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      console.log("[T³] capture success:", data);
-    } else {
-      const txt = await res.text().catch(() => "");
-      console.error("[T³] capture failed:", res.status, txt);
-    }
+    if (res.ok) console.log("[T³] capture ok");
+    else        console.error("[T³] capture failed:", res.status);
   } catch (err) {
     console.error("[T³] capture network error:", err.message);
   }
@@ -190,15 +165,6 @@ export async function advanceJobStatus(job, newStatus, accessToken) {
     throw new Error("This job is assigned to another Wash Pro.");
   }
 
-  // ── Trigger Stripe capture when job reaches Quality Check ────────────────
-  // Look up the PaymentIntent from t3_transactions, then call Worker /capture.
-  // Fire-and-forget: capture runs in parallel, does not delay the status update.
-  if (newStatus === "Quality Check" && job.appointment_id) {
-    getPaymentIntentId(job.appointment_id, accessToken)
-      .then(pi => triggerCapture(job.appointment_id, pi))
-      .catch(err => console.error("[T³] capture pipeline error:", err.message));
-  }
-
   await sbPatch(
     `appointments?appointment_id=eq.${job.appointment_id}`,
     { appointment_status: newStatus },
@@ -210,6 +176,12 @@ export async function advanceJobStatus(job, newStatus, accessToken) {
       { status: newStatus },
       accessToken
     );
+  }
+
+  // Capture after the status is saved; the Worker checks the status itself.
+  // Fires on Completed too, as a safe retry if the first attempt failed.
+  if ((newStatus === "Quality Check" || newStatus === "Completed") && job.appointment_id) {
+    triggerCapture(job.appointment_id, accessToken);
   }
 }
 
