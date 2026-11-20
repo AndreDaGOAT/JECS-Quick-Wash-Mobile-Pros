@@ -9,6 +9,7 @@ import LoginScreen  from "./components/LoginScreen";
 import JobMarker    from "./components/JobMarker";
 import FilterPanel  from "./components/FilterPanel";
 import MetricsStrip from "./components/MetricsStrip";
+import DayPlan      from "./components/DayPlan";
 
 // ── Map auto-fitter ───────────────────────────────────────────────────────────
 function MapFitter({ jobs }) {
@@ -62,6 +63,7 @@ function MapView({ auth }) {
   const [filters,     setFilters] = useState(DEFAULT_FILTERS);
   const [toast,       setToast]   = useState(null);
   const [sidebarOpen, setSidebar] = useState(true);
+  const [view,        setView]    = useState("map");   // "map" | "day"
 
   const canClaim = washPro?.onboarding_status === "approved" && washPro?.active === true;
 
@@ -199,6 +201,15 @@ function MapView({ auth }) {
                 : `${claimableCount} available · ${myJobsCount} assigned`}
             </span>
             <div className="toolbar-right">
+              <div className="view-toggle">
+                <button type="button"
+                  className={view === "map" ? "active" : ""}
+                  onClick={() => setView("map")}>Map</button>
+                <button type="button"
+                  className={view === "day" ? "active" : ""}
+                  onClick={() => setView("day")}>My Day</button>
+              </div>
+              {view === "map" && (
               <select
                 value={filters.status}
                 onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
@@ -208,9 +219,11 @@ function MapView({ auth }) {
                 {["Requested","Confirmed","En Route","In Progress","Quality Check","Completed","Cancelled"]
                   .map(s => <option key={s} value={s}>{s}</option>)}
               </select>
+              )}
             </div>
           </div>
 
+          {view === "map" ? (
           <MapContainer center={mapCenter} zoom={12} className="job-map">
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -237,8 +250,15 @@ function MapView({ auth }) {
               />
             )}
           </MapContainer>
+          ) : (
+            <DayPlan
+              session={auth.session}
+              onClaim={handleClaim}
+              canClaim={canClaim || isSample}
+            />
+          )}
 
-          <MetricsStrip jobs={jobs} lastUpdated={lastUpdated} />
+          {view === "map" && <MetricsStrip jobs={jobs} lastUpdated={lastUpdated} />}
         </div>
       </div>
 
