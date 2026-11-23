@@ -10,6 +10,7 @@ import JobMarker    from "./components/JobMarker";
 import FilterPanel  from "./components/FilterPanel";
 import MetricsStrip from "./components/MetricsStrip";
 import DayPlan      from "./components/DayPlan";
+import Earnings     from "./components/Earnings";
 
 // ── Map auto-fitter ───────────────────────────────────────────────────────────
 function MapFitter({ jobs }) {
@@ -63,7 +64,7 @@ function MapView({ auth }) {
   const [filters,     setFilters] = useState(DEFAULT_FILTERS);
   const [toast,       setToast]   = useState(null);
   const [sidebarOpen, setSidebar] = useState(true);
-  const [view,        setView]    = useState("map");   // "map" | "day"
+  const [view,        setView]    = useState("map");   // "map" | "day" | "earnings"
 
   const canClaim = washPro?.onboarding_status === "approved" && washPro?.active === true;
 
@@ -208,6 +209,9 @@ function MapView({ auth }) {
                 <button type="button"
                   className={view === "day" ? "active" : ""}
                   onClick={() => setView("day")}>My Day</button>
+                <button type="button"
+                  className={view === "earnings" ? "active" : ""}
+                  onClick={() => setView("earnings")}>Earnings</button>
               </div>
               {view === "map" && (
               <select
@@ -250,12 +254,14 @@ function MapView({ auth }) {
               />
             )}
           </MapContainer>
-          ) : (
+          ) : view === "day" ? (
             <DayPlan
               session={auth.session}
               onClaim={handleClaim}
               canClaim={canClaim || isSample}
             />
+          ) : (
+            <Earnings session={auth.session} />
           )}
 
           {view === "map" && <MetricsStrip jobs={jobs} lastUpdated={lastUpdated} />}
