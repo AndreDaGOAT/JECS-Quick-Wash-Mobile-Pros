@@ -916,3 +916,136 @@ h1 {
   padding: 0.3rem 0.6rem; cursor: pointer;
 }
 .view-toggle button.active { background: var(--brand); color: #fff; }
+
+/* ── Earnings ─────────────────────────────────────────────────────────────── */
+
+.earn {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 0.75rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Day / Week / Month / Year */
+.earn-grains {
+  display: flex; gap: 0.25rem;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 0.25rem; margin-bottom: 0.7rem;
+}
+.earn-grains button {
+  flex: 1; border: none; background: transparent; cursor: pointer;
+  border-radius: 7px; padding: 0.5rem 0.25rem;
+  font-size: 0.82rem; font-weight: 600; color: var(--muted);
+  transition: background 0.12s, color 0.12s;
+}
+.earn-grains button.active { background: var(--brand); color: #fff; }
+.earn-grains button:not(.active):hover { background: var(--surface-soft); color: var(--text); }
+
+/* Headline figure */
+.earn-hero {
+  background: linear-gradient(140deg, var(--brand) 0%, var(--brand-dark) 100%);
+  border-radius: 14px; padding: 1.15rem 1rem 1.05rem;
+  color: #fff; text-align: center; margin-bottom: 0.7rem;
+}
+.earn-hero-label {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; opacity: 0.72;
+}
+.earn-hero-amount {
+  margin-top: 0.3rem; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.earn-hero-sign  { font-size: 1.35rem; font-weight: 600; opacity: 0.85; vertical-align: 0.55rem; }
+.earn-hero-whole { font-size: 2.9rem;  font-weight: 700; }
+.earn-hero-frac  { font-size: 1.35rem; font-weight: 600; opacity: 0.85; vertical-align: 0.55rem; }
+.earn-hero-sub   { margin-top: 0.4rem; font-size: 0.8rem; opacity: 0.82; }
+
+/* Payable / clearing / paid */
+.earn-balance {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 0.7rem 0.75rem; margin-bottom: 0.7rem;
+}
+.earn-balance-row { display: flex; gap: 0.5rem; }
+.earn-balance-row > div { flex: 1; min-width: 0; }
+.earn-balance-label {
+  font-size: 0.64rem; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.earn-balance-value {
+  margin-top: 0.15rem; font-size: 1.02rem; font-weight: 700;
+  color: var(--brand); font-variant-numeric: tabular-nums;
+}
+.earn-balance-value.muted { color: var(--text); opacity: 0.6; font-weight: 600; }
+.earn-balance-note {
+  margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid var(--line);
+  font-size: 0.73rem; color: var(--muted); line-height: 1.45;
+}
+
+/* The run of periods */
+.earn-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; overflow: hidden; margin-bottom: 0.7rem;
+}
+.earn-card-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;
+  padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--line);
+  font-size: 0.78rem; font-weight: 700; color: var(--text);
+}
+.earn-card-note { font-weight: 500; color: var(--muted); font-size: 0.72rem; }
+.earn-empty { padding: 1.4rem 0.9rem; text-align: center; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+
+/* Bars */
+.earn-chart {
+  display: flex; align-items: flex-end; gap: 2px;
+  height: 78px; padding: 0.75rem 0.75rem 0.5rem;
+}
+.earn-bar-slot { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
+.earn-bar {
+  width: 100%; min-height: 2px; border-radius: 3px 3px 1px 1px;
+  background: var(--accent);
+}
+.earn-bar.empty { background: var(--line); min-height: 2px; }
+
+/* List */
+.earn-list { list-style: none; margin: 0; padding: 0; }
+.earn-list li {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 0.75rem; border-top: 1px solid var(--line);
+}
+.earn-list li.quiet { opacity: 0.5; }
+.earn-list-main  { min-width: 0; }
+.earn-list-label { display: block; font-size: 0.84rem; font-weight: 600; color: var(--text); }
+.earn-list-sub   { display: block; font-size: 0.7rem; color: var(--muted); margin-top: 0.1rem; }
+.earn-list-amounts { text-align: right; flex-shrink: 0; }
+.earn-list-amount  {
+  display: block; font-size: 0.92rem; font-weight: 700;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.earn-list-pending { display: block; font-size: 0.66rem; color: var(--gold); margin-top: 0.08rem; }
+
+.earn-lifetime {
+  text-align: center; font-size: 0.73rem; color: var(--muted);
+  padding: 0.2rem 0.5rem 0.9rem;
+}
+
+/* Error */
+.earn-error {
+  display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start;
+  background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 10px;
+  padding: 0.7rem 0.8rem; margin-bottom: 0.7rem; font-size: 0.78rem; color: #7F1D1D;
+}
+.earn-error button {
+  margin-top: 0.25rem; border: 1px solid #FCA5A5; background: #fff;
+  color: #991B1B; border-radius: 7px; padding: 0.35rem 0.7rem;
+  font-size: 0.75rem; font-weight: 600; cursor: pointer;
+}
+
+/* Roomier once there is width to spare */
+@media (min-width: 720px) {
+  .earn { padding: 1rem 1.25rem; }
+  .earn-hero { padding: 1.5rem 1rem 1.4rem; }
+  .earn-hero-whole { font-size: 3.4rem; }
+  .earn-chart { height: 110px; gap: 3px; }
+}
